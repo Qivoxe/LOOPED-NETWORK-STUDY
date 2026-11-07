@@ -1,3 +1,4 @@
+
 import yaml
 from pathlib import Path
 
@@ -9,12 +10,14 @@ def load_experiment_config():
     with open(path, "r") as file:
         config = yaml.safe_load(file)
 
-    assert len(config["seeds"]) == 3
-    assert len(config["recurrent_depths"]) == 4
+    seeds = config["experiment"]["seeds"]
+    depths = config["recurrent_depths"]
+    optimizers = config["optimizers"]
 
-    assert set(config["optimizers"]) == {
-        "sgd", "adamw"
-    }
+    assert len(seeds) == 3
+    assert len(depths) == 4
+
+    assert set(optimizers) == {"sgd", "adamw"}
 
     return config
 
@@ -24,7 +27,7 @@ if __name__ == "__main__":
     config = load_experiment_config()
 
     total_runs = (
-        len(config["seeds"])
+        len(config["experiment"]["seeds"])
         * len(config["recurrent_depths"])
         * len(config["optimizers"])
     )
