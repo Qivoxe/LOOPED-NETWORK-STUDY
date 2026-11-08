@@ -20,7 +20,9 @@ The initial experiments use the Two Moons classification dataset as a controlled
 
 This repository should be understood as an experimental implementation and diagnostic study, rather than a claim of a new optimization algorithm.
 
-## 1. Network architecture
+---
+
+## 1. Network Architecture
 
 ### 1.1 Shared-weight looped network
 
@@ -85,7 +87,7 @@ This makes it possible to investigate how repeated application of the same learn
 
 ---
 
-## 2. Optimization algorithms
+## 2. Optimization Algorithms
 
 Two optimizers are implemented directly using the PyTorch optimizer interface.
 
@@ -112,9 +114,7 @@ The momentum buffer is initialized using the first gradient.
 
 Weight decay is implemented as coupled L2 regularization by adding the parameter contribution to the gradient before updating the momentum buffer.
 
-Implementation:
-
-`src/optimizers/sgd.py`
+Implementation: `src/optimizers/sgd.py`
 
 ### 2.2 AdamW
 
@@ -149,9 +149,7 @@ The parameter update uses:
 
 where \(\lambda\) is the decoupled weight-decay coefficient.
 
-Implementation:
-
-`src/optimizers/adamw.py`
+Implementation: `src/optimizers/adamw.py`
 
 ### 2.3 Implementation scope
 
@@ -161,7 +159,7 @@ Reference tests compare the custom implementations against corresponding PyTorch
 
 ---
 
-## 3. Experimental setup
+## 3. Experimental Setup
 
 ### 3.1 Dataset
 
@@ -235,13 +233,9 @@ The optimizer settings are:
 
 This initial experiment provides a baseline across the selected configurations. Since the learning rates and weight-decay settings differ, its results should not be interpreted as a fully controlled comparison of optimizer superiority.
 
-Configuration:
+Configuration: `configs/experiment_matrix.yaml`
 
-`configs/experiment_matrix.yaml`
-
-Runner:
-
-`experiments/run_experiments.py`
+Runner: `experiments/run_experiments.py`
 
 ### 4.2 Learning-rate sensitivity experiment
 
@@ -254,9 +248,7 @@ The experiment contains:
 - Four learning rates per optimizer.
 - Three random seeds.
 
-The learning-rate configurations are:
-
-**SGD**
+**SGD learning rates**
 
 ```text
 0.001
@@ -265,7 +257,7 @@ The learning-rate configurations are:
 0.030
 ```
 
-**AdamW**
+**AdamW learning rates**
 
 ```text
 0.0001
@@ -282,13 +274,9 @@ The total number of attempted runs is:
 
 The learning-rate values are preliminary experimental settings used to examine sensitivity within the chosen training budget. They are not presented as generally optimal learning rates.
 
-Configuration:
+Configuration: `configs/learning_rate_experiment.yaml`
 
-`configs/learning_rate_experiment.yaml`
-
-Runner:
-
-`experiments/run_learning_rate_sweep.py`
+Runner: `experiments/run_learning_rate_sweep.py`
 
 ### 4.3 Metrics
 
@@ -308,9 +296,51 @@ The reported epoch-level gradient norm is the arithmetic mean of the individual 
 
 ---
 
-## 5. Preliminary experimental results
+## 5. Experimental Results and Visualizations
 
-### 5.1 Learning-rate sweep
+The following figures summarize the learning-rate sensitivity experiments across four recurrent depths. Results are aggregated across three random seeds, with incomplete configurations explicitly identified.
+
+### 5.1 Learning-rate sensitivity across recurrent depths
+
+The plots show mean validation loss and mean minibatch gradient norm as functions of recurrent depth for SGD and AdamW.
+
+Error bars represent ±1 standard deviation across successful random seeds.
+
+![Learning-rate sensitivity across recurrent depths](results/learning_rate_sensitivity/figures/learning_rate_depth_statistics.png)
+
+*Figure 1. Validation loss and gradient-norm statistics across recurrent depths and learning-rate configurations.*
+
+### 5.2 AdamW: validation-loss sensitivity
+
+The heatmap displays mean validation loss for each combination of learning rate and recurrent depth. Each cell reports the number of successful runs relative to the total number of runs.
+
+![AdamW validation-loss heatmap](results/learning_rate_sensitivity/figures/adamw_learning_rate_heatmap.png)
+
+*Figure 2. AdamW validation-loss heatmap. All configurations completed three runs.*
+
+### 5.3 SGD: validation-loss sensitivity
+
+The corresponding SGD heatmap shows the variation in validation loss across its learning-rate configurations.
+
+One configuration, depth 8 at learning rate 0.03, contains only two successful runs. Its incomplete sample count is retained in the visualization.
+
+![SGD validation-loss heatmap](results/learning_rate_sensitivity/figures/sgd_learning_rate_heatmap.png)
+
+*Figure 3. SGD validation-loss heatmap. The depth-8, learning-rate-0.03 configuration completed two of three runs.*
+
+### 5.4 Interpretation notes
+
+The figures provide a descriptive view of optimization behaviour under the tested experimental conditions.
+
+Several configurations show increasing gradient norms with recurrent depth, while validation-loss patterns vary with learning rate and optimizer.
+
+These observations are specific to the implemented architecture, dataset, training budget, and tested configurations. They should not be interpreted as general claims about optimizer superiority or recurrent-network stability.
+
+---
+
+## 6. Statistical Analysis and Preliminary Results
+
+### 6.1 Learning-rate sweep execution statistics
 
 The 96-run learning-rate sweep produced the following execution statistics:
 
@@ -333,7 +363,7 @@ The single non-finite run occurred under:
 
 The other two seeds for this configuration completed successfully.
 
-### 5.2 Numerical instability investigation
+### 6.2 Numerical instability investigation
 
 The failed configuration was reproduced using a dedicated diagnostic script.
 
@@ -345,11 +375,9 @@ This is consistent with numerical divergence in that particular run.
 
 The result does not establish that depth 8 is generally unstable, nor does it isolate learning rate as the only contributing factor.
 
-Diagnostic implementation:
+Diagnostic implementation: `experiments/debug_unstable_run.py`
 
-`experiments/debug_unstable_run.py`
-
-### 5.3 Gradient-norm observations
+### 6.3 Gradient-norm observations
 
 The statistical summary shows increasing mean minibatch gradient norms with recurrent depth in several learning-rate configurations.
 
@@ -366,7 +394,7 @@ This pattern is worth further investigation.
 
 A larger gradient norm alone does not demonstrate exploding gradients. Additional diagnostics, including gradient distributions, parameter-update magnitudes, and behaviour over training time, would be needed to characterize the underlying mechanism.
 
-### 5.4 Interpretation limits
+### 6.4 Interpretation limits
 
 The results should be interpreted within the limits of the current experimental design:
 
@@ -381,52 +409,7 @@ These experiments provide an initial diagnostic characterization of the implemen
 
 ---
 
-## 6. Statistical analysis and visualization
-
-The experiment pipeline includes scripts for summarizing and visualizing results.
-
-Generated figures include:
-
-```text
-results/
-├── figures/
-│   ├── gradient_norm_vs_depth.png
-│   ├── learning_curves_depth8.png
-│   ├── runtime_vs_depth.png
-│   └── validation_loss_vs_depth.png
-│
-└── learning_rate_sensitivity/
-    ├── figures/
-    │   ├── sgd_learning_rate_heatmap.png
-    │   ├── adamw_learning_rate_heatmap.png
-    │   └── learning_rate_depth_statistics.png
-    │
-    ├── individual_runs/
-    ├── experiment_summary.csv
-    └── statistical_summary.csv
-```
-
-The learning-rate heatmaps report mean validation loss calculated from completed runs. Each cell also displays its successful-run count relative to the total number of runs.
-
-The statistical summary includes:
-
-- Mean validation loss.
-- Standard deviation of validation loss.
-- Mean validation accuracy.
-- Standard deviation of validation accuracy.
-- Mean gradient norm.
-- Standard deviation of gradient norm.
-- Mean execution time.
-- Number of completed and failed runs.
-- Configuration-level failure rate.
-
-The error bars in the depth-statistics figure represent one standard deviation across successful random seeds, not confidence intervals.
-
-Generated results are not necessarily included in version control. The experiment scripts and configuration files are the reproducible source of the results.
-
----
-
-## 7. Repository structure
+## 7. Repository Structure
 
 ```text
 looped-network-study/
@@ -474,6 +457,10 @@ looped-network-study/
 │   ├── metrics/
 │   ├── figures/
 │   └── learning_rate_sensitivity/
+│       ├── figures/
+│       ├── individual_runs/
+│       ├── experiment_summary.csv
+│       └── statistical_summary.csv
 │
 ├── requirements.txt
 ├── .gitignore
@@ -534,7 +521,7 @@ The training pipeline supports CPU execution and can use CUDA when available and
 
 ---
 
-## 9. Running the experiments
+## 9. Running the Experiments
 
 Run the baseline experiment:
 
@@ -654,7 +641,7 @@ pytest -v
 
 ---
 
-## 12. Current limitations and further work
+## 12. Current Limitations and Further Work
 
 The current implementation is an initial experimental framework. Several improvements remain important before drawing broader conclusions.
 
@@ -682,7 +669,7 @@ The implementation is based on established optimization methods and neural-netwo
 
 ---
 
-## Project status
+## Project Status
 
 The shared-weight network, custom optimizer implementations, initial experiment matrix, learning-rate sweep, numerical instability investigation, statistical analysis, and result-integrity checks have been implemented.
 
